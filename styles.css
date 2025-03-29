@@ -1,0 +1,459 @@
+body {
+    background-color: #f5f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.sidebar {
+    background-color: #ffffff;
+    height: 100vh;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+}
+
+.main-content {
+    padding: 20px;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+#map {
+    height: 400px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #eee;
+    padding: 15px 20px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.ideology-meter {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.progress {
+    height: 25px;
+    margin: 10px 0;
+    background-color: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+.tier-stats {
+    margin-top: 15px;
+}
+
+.tier {
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.tier h4 {
+    margin: 0;
+    color: #495057;
+}
+
+.economy-stats {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.economy-stats p {
+    margin: 5px 0;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+#eventsLog {
+    height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.event-item {
+    padding: 8px;
+    margin-bottom: 8px;
+    border-left: 4px solid #4CAF50;
+    background-color: #ffffff;
+    border-radius: 4px;
+}
+
+.event-item.negative {
+    border-left-color: #dc3545;
+}
+
+#demographicsChart {
+    height: 300px;
+    margin-top: 10px;
+}
+
+/* Custom Map Marker Styles */
+.custom-div-icon {
+    background: transparent;
+    border: none;
+}
+
+.marker-pin {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    border: 3px solid #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.marker-pin:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.marker-pin::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #4CAF50;
+}
+
+/* City Info Popup Styles */
+.city-popup {
+    padding: 10px;
+    min-width: 200px;
+}
+
+.city-popup h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1.2em;
+}
+
+.city-popup p {
+    margin: 5px 0;
+    color: #666;
+}
+
+.city-popup .progress {
+    height: 8px;
+    margin: 5px 0;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.city-popup .progress-bar {
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+/* Add city info styles */
+.city-info {
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+}
+
+.city-info h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.city-info p {
+    margin: 5px 0;
+    color: #666;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        height: auto;
+        position: relative;
+    }
+    
+    .main-content {
+        height: auto;
+    }
+    
+    #map {
+        height: 300px;
+    }
+}
+
+/* Demographics Stats Styles */
+.demographics-stats {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.demographics-grid {
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+.demographics-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.demographics-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 8px;
+    background-color: #ffffff;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    transition: background-color 0.2s;
+}
+
+.demographics-row:hover {
+    background-color: #f0f0f0;
+}
+
+.demographics-row .percentage {
+    color: #666;
+    font-size: 0.8em;
+}
+
+.total-stats {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+.total-stats p {
+    margin: 5px 0;
+    font-weight: 500;
+}
+
+.total-stats span {
+    color: #4CAF50;
+}
+
+.chart-container {
+    width: 100%;
+    height: 300px;
+    margin: 20px 0;
+}
+
+#demographicsChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.economy-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.control-group label {
+    font-weight: 500;
+    color: #333;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.slider-container input[type="range"] {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    background: #ddd;
+    border-radius: 3px;
+    outline: none;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #4CAF50;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+    background: #45a049;
+}
+
+.slider-container span {
+    min-width: 45px;
+    text-align: right;
+    color: #666;
+}
+
+/* Slideshow Styles */
+.slideshow-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    margin-top: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+.slideshow {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.slideshow img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.slideshow img.active {
+    opacity: 1;
+}
+
+.slideshow-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+}
+
+.gallery-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#imageUpload {
+    flex: 1;
+}
+
+/* Add hover effect to slideshow controls */
+.slideshow-controls button {
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.slideshow-controls button:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Add fade effect for image transitions */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* App Statistics Styles */
+.app-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 10px;
+}
+
+.stat-item {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-item label {
+    display: block;
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.stat-item .stat-value {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Add hover effect */
+.stat-item:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+} 
