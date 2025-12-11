@@ -3,31 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creator Sim - Fixed & Optimized</title>
+    <title>Creator Sim - Hardcore Tycoon</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
         
         body { font-family: 'Inter', sans-serif; }
-
         /* Custom Scrollbar */
         .log-scroll::-webkit-scrollbar { width: 4px; }
         .log-scroll::-webkit-scrollbar-track { background: #18181b; }
         .log-scroll::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popIn {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
-
         .scan-line {
             width: 100%; height: 2px; background: #10b981;
             position: absolute; top: 0; left: 0;
@@ -40,18 +40,30 @@
             90% { opacity: 1; }
             100% { top: 100%; opacity: 0; }
         }
-
         .vibe-option.selected { border-color: #ec4899; background-color: #500724; ring: 1px solid #ec4899; }
         .vibe-option.disabled-option { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
         
         .agency-card.selected { border-color: #a855f7; background-color: #3b0764; }
         
-        .age-btn.selected { background-color: #0f172a; border-color: #38bdf8; color: #38bdf8; }
+        .shop-tab.active { background-color: #27272a; border-bottom: 2px solid #ec4899; color: white; }
+        .shop-tab { color: #71717a; }
 
+        .age-btn.selected { background-color: #0f172a; border-color: #38bdf8; color: #38bdf8; }
         /* Phone Screen */
         .phone-screen { background: #000; box-shadow: inset 0 0 20px rgba(255,255,255,0.05); }
         .glass-panel { background: rgba(24, 24, 27, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
         
+        /* Burnout Overlay */
+        .burnout-overlay { 
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0,0,0,0.8),
+                rgba(0,0,0,0.8) 10px,
+                rgba(20,0,0,0.8) 10px,
+                rgba(20,0,0,0.8) 20px
+            );
+        }
+
         /* Carousel */
         .carousel-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; }
         .carousel-item { flex: 0 0 100%; scroll-snap-align: start; }
@@ -59,6 +71,101 @@
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+
+    <!-- BURNOUT OVERLAY -->
+    <div id="burnout-screen" class="hidden fixed inset-0 z-[90] burnout-overlay flex flex-col items-center justify-center backdrop-blur-sm pointer-events-none">
+        <h1 class="text-6xl font-black text-white mb-2 tracking-tighter animate-pulse">BURNOUT</h1>
+        <p class="text-red-400 text-xl font-bold uppercase tracking-widest bg-black px-4 py-2 rounded border border-red-900">Psychological Collapse</p>
+        <p class="text-zinc-400 mt-4 text-sm max-w-md text-center">You pushed too hard. You cannot work, post, or socialize.<br>Rent is still due.</p>
+        <p class="text-white mt-8 font-mono text-2xl">Recovering... <span id="burnout-timer">2</span> Days Left</p>
+    </div>
+
+    <!-- BLACKMAIL MODAL -->
+    <div id="blackmail-modal" class="hidden fixed inset-0 bg-black/95 z-[95] flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border-2 border-red-600 p-6 rounded-xl max-w-md w-full relative">
+            <div class="absolute -top-3 -left-3 bg-red-600 text-white font-bold px-3 py-1 text-xs uppercase tracking-widest">Threat Detected</div>
+            <h2 class="text-2xl font-bold text-white mb-2">Anonymous Message</h2>
+            <p class="text-zinc-300 text-sm mb-6 bg-zinc-800 p-4 rounded italic border-l-4 border-red-500">
+                "I found your old Facebook. Does your family know how you pay rent? Send cash or I send the link to your mom."
+            </p>
+            <div class="space-y-3">
+                <button onclick="handleBlackmail('pay')" class="w-full bg-zinc-800 hover:bg-zinc-700 text-green-400 border border-green-900 font-bold py-3 rounded flex justify-between px-4">
+                    <span>Pay Hush Money</span>
+                    <span id="blackmail-cost">-$500</span>
+                </button>
+                <button onclick="handleBlackmail('ignore')" class="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 border border-red-900 font-bold py-3 rounded">
+                    Ignore & Risk It (Stats -> 10)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARASOCIAL OFFER MODAL -->
+    <div id="parasocial-modal" class="hidden fixed inset-0 bg-black/90 z-[85] flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-pink-500 p-6 rounded-xl max-w-sm w-full text-center">
+            <div class="w-20 h-20 bg-pink-500/20 rounded-full mx-auto flex items-center justify-center mb-4">
+                <i data-lucide="heart-handshake" class="w-10 h-10 text-pink-500"></i>
+            </div>
+            <h2 class="text-xl font-bold text-white mb-1">Super Fan Offer</h2>
+            <p class="text-zinc-400 text-sm mb-4">"I want to be your exclusive partner. I'll pay your bills, but you belong to me."</p>
+            
+            <div class="bg-zinc-800 p-3 rounded mb-4 text-xs text-left">
+                <div class="flex justify-between mb-1"><span class="text-green-400">Income:</span> <span>+$200 / Day</span></div>
+                <div class="flex justify-between mb-1"><span class="text-red-400">Cost:</span> <span>30 Energy / Day (Chatting)</span></div>
+                <div class="flex justify-between"><span class="text-orange-400">Rule:</span> <span>No Collabs / Other People</span></div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="document.getElementById('parasocial-modal').classList.add('hidden')" class="flex-1 bg-zinc-800 py-2 rounded text-zinc-400 text-xs">Reject</button>
+                <button onclick="acceptParasocial()" class="flex-1 bg-pink-600 hover:bg-pink-500 text-white font-bold py-2 rounded text-xs">Accept Partner</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BANK MODAL -->
+    <div id="bank-modal" class="hidden fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-green-800 p-6 rounded-xl max-w-lg w-full relative overflow-hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="landmark" class="text-green-500"></i> SimBank</h3>
+                <button onclick="closeBankModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+
+            <!-- Active Loans -->
+            <div class="mb-6">
+                <h4 class="text-xs text-zinc-500 font-bold uppercase mb-2">Active Debts</h4>
+                <div id="active-loans-container" class="space-y-2">
+                    <!-- Populated by JS -->
+                    <div class="text-zinc-600 text-xs italic">No active loans.</div>
+                </div>
+            </div>
+
+            <!-- New Loans -->
+            <h4 class="text-xs text-zinc-500 font-bold uppercase mb-2">Available Credits</h4>
+            <div class="grid grid-cols-1 gap-3">
+                <div class="bg-zinc-800 p-3 rounded border border-zinc-700 flex justify-between items-center">
+                    <div>
+                        <div class="text-white font-bold text-sm">Payday Loan</div>
+                        <div class="text-[10px] text-zinc-400">Get $500 • Pay $750 (3 Days)</div>
+                    </div>
+                    <button onclick="takeLoan('payday')" class="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold">Take $500</button>
+                </div>
+                <div class="bg-zinc-800 p-3 rounded border border-zinc-700 flex justify-between items-center">
+                    <div>
+                        <div class="text-white font-bold text-sm">Biz Credit</div>
+                        <div class="text-[10px] text-zinc-400">Get $2,000 • Pay $2,500 (10 Days)</div>
+                    </div>
+                    <button onclick="takeLoan('biz')" class="bg-green-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold">Take $2k</button>
+                </div>
+                <div class="bg-zinc-800 p-3 rounded border border-red-900/50 flex justify-between items-center">
+                    <div>
+                        <div class="text-red-400 font-bold text-sm">Shark Loan</div>
+                        <div class="text-[10px] text-zinc-400">Get $5,000 • Pay $10,000 (30 Days)</div>
+                    </div>
+                    <button onclick="takeLoan('shark')" class="bg-red-900 hover:bg-red-800 text-white text-xs px-3 py-1.5 rounded font-bold">Risk $5k</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- REGISTRATION SCREEN -->
     <div id="registration-screen" class="fixed inset-0 bg-zinc-950 z-[100] flex flex-col items-center justify-center p-4 overflow-y-auto">
@@ -75,7 +182,6 @@
                         <input type="text" id="reg-handle" class="w-full bg-zinc-900 border border-zinc-700 rounded-r p-3 text-white focus:outline-none focus:border-pink-500 transition-colors" placeholder="creator_name">
                     </div>
                 </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-zinc-400 mb-2 uppercase">Age Group</label>
@@ -97,7 +203,6 @@
                         <p class="text-[10px] text-zinc-500 mt-2">Influences trending topics.</p>
                     </div>
                 </div>
-
                 <!-- Photo Upload ID -->
                 <div>
                     <label class="block text-xs font-semibold text-zinc-400 mb-2 uppercase">Biometric Verification</label>
@@ -118,7 +223,6 @@
                         </div>
                     </div>
                 </div>
-
                 <button onclick="submitRegistration()" id="btn-register" class="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3.5 rounded mt-4 uppercase tracking-widest transition-all opacity-50 cursor-not-allowed" disabled>
                     Initialize Account
                 </button>
@@ -174,63 +278,27 @@
 
     <!-- SHOP MODAL -->
     <div id="shop-modal" class="hidden fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4">
-        <div class="bg-zinc-900 border border-zinc-700 p-6 rounded-xl max-w-md w-full">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="shopping-bag" class="text-pink-500"></i> Lifestyle & Setup</h3>
-                <button onclick="closeShopModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x"></i></button>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-xl max-w-lg w-full h-[600px] flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900 z-10">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i data-lucide="shopping-bag" class="text-pink-500"></i> Marketplace
+                </h3>
+                <div class="flex gap-4 items-center">
+                    <span class="font-mono text-green-400 font-bold" id="shop-balance">$0</span>
+                    <button onclick="closeShopModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x"></i></button>
+                </div>
             </div>
             
-            <div class="space-y-3">
-                <div class="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-2">Services</div>
-                <div class="flex justify-between items-center bg-zinc-800 p-3 rounded">
-                    <div>
-                        <div class="font-bold text-white text-sm">Spa Day</div>
-                        <div class="text-[10px] text-zinc-400">Restores +40 Sanity</div>
-                    </div>
-                    <button onclick="buyItem('spa', 100)" class="bg-zinc-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold transition">$100</button>
-                </div>
-                <div class="flex justify-between items-center bg-zinc-800 p-3 rounded">
-                    <div>
-                        <div class="font-bold text-white text-sm">PR Campaign</div>
-                        <div class="text-[10px] text-zinc-400">Restores +25 Reputation</div>
-                    </div>
-                    <button onclick="buyItem('pr', 250)" class="bg-zinc-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold transition">$250</button>
-                </div>
-                
-                <div class="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-2 mt-4">Equipment Upgrades</div>
-                
-                <div class="flex justify-between items-center bg-zinc-800 p-3 rounded">
-                    <div>
-                        <div class="font-bold text-white text-sm">Ring Light</div>
-                        <div class="text-[10px] text-zinc-400">+5% Tip Chance</div>
-                    </div>
-                    <button onclick="buyItem('ringlight', 200)" id="btn-buy-ringlight" class="bg-zinc-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold transition">$200</button>
-                </div>
-                
-                <div class="flex justify-between items-center bg-zinc-800 p-3 rounded">
-                    <div>
-                        <div class="font-bold text-white text-sm">4K Mirrorless</div>
-                        <div class="text-[10px] text-zinc-400">+15% Subscriber Growth</div>
-                    </div>
-                    <button onclick="buyItem('mirrorless', 1500)" id="btn-buy-mirrorless" class="bg-zinc-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold transition">$1,500</button>
-                </div>
+            <!-- Tabs -->
+            <div class="flex text-xs font-bold uppercase tracking-wider border-b border-zinc-800 bg-zinc-900">
+                <button onclick="switchShopTab('consumable')" id="tab-consumable" class="shop-tab active flex-1 py-3 text-center transition hover:bg-zinc-800">Consumables</button>
+                <button onclick="switchShopTab('hardware')" id="tab-hardware" class="shop-tab flex-1 py-3 text-center transition hover:bg-zinc-800">Hardware</button>
+                <button onclick="switchShopTab('clout')" id="tab-clout" class="shop-tab flex-1 py-3 text-center transition hover:bg-zinc-800">Clout</button>
+            </div>
 
-                <div class="flex justify-between items-center bg-zinc-800 p-3 rounded border border-yellow-900/30">
-                    <div>
-                        <div class="font-bold text-yellow-500 text-sm">Pro Studio</div>
-                        <div class="text-[10px] text-zinc-400">Unlocks QUEEN Rank</div>
-                    </div>
-                    <button onclick="buyItem('studio', 5000)" id="btn-buy-studio" class="bg-zinc-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold transition">$5,000</button>
-                </div>
-                
-                <div class="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-2 mt-4">Security</div>
-                <div class="flex justify-between items-center bg-zinc-800 p-3 rounded">
-                    <div>
-                        <div class="font-bold text-white text-sm">Cyber Security</div>
-                        <div class="text-[10px] text-zinc-400">Prevents Leaks</div>
-                    </div>
-                    <button onclick="buyItem('security', 500)" id="btn-buy-security" class="bg-zinc-700 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded font-bold transition">$500</button>
-                </div>
+            <!-- Shop Content -->
+            <div id="shop-content" class="flex-1 overflow-y-auto p-4 space-y-2 bg-zinc-950/50">
+                <!-- Injected via JS -->
             </div>
         </div>
     </div>
@@ -241,52 +309,46 @@
             <div class="absolute top-0 left-0 w-full h-1 bg-purple-600"></div>
             <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h3 class="text-xl font-bold text-white uppercase italic tracking-widest">Agency Selector</h3>
-                    <p class="text-zinc-400 text-xs">Choose your management style.</p>
+                    <h3 class="text-xl font-bold text-white uppercase italic tracking-widest">Talent Mgmt</h3>
+                    <p class="text-zinc-400 text-xs">Agencies take a cut but provide perks. <span class="text-red-400">They are ruthless.</span></p>
                 </div>
                 <button onclick="closeAgencyModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x"></i></button>
             </div>
             
             <div id="agency-selection-ui" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <!-- Chatter Farm -->
-                <div onclick="selectAgencyOption('chatter')" id="agency-chatter" class="agency-card cursor-pointer bg-zinc-800 p-4 rounded border border-zinc-700 hover:bg-zinc-700 transition">
-                    <div class="font-bold text-blue-400 mb-1">Chatter Farm</div>
-                    <div class="text-xs text-zinc-300 mb-2 h-8">"We handle the DMs."</div>
-                    <ul class="text-[10px] text-zinc-400 space-y-1 mb-3">
-                        <li class="text-green-400">+10 Sanity / Day</li>
-                        <li class="text-red-400">40% Tax</li>
-                    </ul>
-                </div>
-
-                <!-- Viral House -->
-                <div onclick="selectAgencyOption('viral')" id="agency-viral" class="agency-card cursor-pointer bg-zinc-800 p-4 rounded border border-zinc-700 hover:bg-zinc-700 transition">
-                    <div class="font-bold text-pink-500 mb-1">Viral House</div>
-                    <div class="text-xs text-zinc-300 mb-2 h-8">"Go big or go home."</div>
-                    <ul class="text-[10px] text-zinc-400 space-y-1 mb-3">
-                        <li class="text-green-400">2x Sub Growth</li>
-                        <li class="text-red-400">50% Tax</li>
-                        <li class="text-orange-400">Forced WILD Content</li>
-                    </ul>
-                </div>
-
-                <!-- Boutique Mgmt -->
-                <div onclick="selectAgencyOption('boutique')" id="agency-boutique" class="agency-card cursor-pointer bg-zinc-800 p-4 rounded border border-zinc-700 hover:bg-zinc-700 transition">
-                    <div class="font-bold text-yellow-400 mb-1">Boutique Mgmt</div>
-                    <div class="text-xs text-zinc-300 mb-2 h-8">"Premium service."</div>
-                    <ul class="text-[10px] text-zinc-400 space-y-1 mb-3">
-                        <li class="text-green-400">Only 20% Tax</li>
-                        <li class="text-red-400">$35/Day Retainer</li>
-                    </ul>
-                </div>
+                <!-- Generated JS -->
             </div>
-
-            <button onclick="signAgency()" id="btn-sign-agency" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded text-xs uppercase disabled:opacity-50 disabled:cursor-not-allowed" disabled>Select an Agency</button>
+            <button onclick="signAgency()" id="btn-sign-agency" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded text-xs uppercase disabled:opacity-50 disabled:cursor-not-allowed" disabled>Sign Contract</button>
             
             <!-- Active Contract View -->
             <div id="agency-active-ui" class="hidden text-center py-4">
-                <div class="text-green-400 font-bold text-lg mb-2">CURRENTLY SIGNED</div>
-                <div class="text-zinc-400 text-sm mb-4">Agency: <span id="current-agency-name" class="text-white font-bold">...</span></div>
-                <button onclick="breakContract()" class="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded font-bold uppercase text-xs">Break Contract ($500 Penalty)</button>
+                <div class="bg-zinc-800/50 p-6 rounded-xl border border-zinc-700">
+                    <div class="text-purple-400 font-bold text-2xl mb-1" id="current-agency-name">...</div>
+                    <div class="text-zinc-500 text-xs uppercase tracking-widest mb-6">Exclusive Contract</div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-zinc-900 p-3 rounded">
+                            <div class="text-xs text-zinc-500 mb-1">Satisfaction</div>
+                            <div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                                <div id="agency-satisfaction-bar" class="h-full bg-green-500 transition-all duration-500" style="width: 100%"></div>
+                            </div>
+                            <div id="agency-satisfaction-text" class="text-[10px] text-right mt-1 text-zinc-400">100/100</div>
+                        </div>
+                        <div class="bg-zinc-900 p-3 rounded flex flex-col justify-center">
+                            <div class="text-xs text-zinc-500">Revenue Split</div>
+                            <div class="font-mono text-white" id="agency-split-display">...</div>
+                        </div>
+                    </div>
+
+                    <div class="text-left bg-black/20 p-3 rounded mb-6">
+                        <div class="text-[10px] text-zinc-500 uppercase font-bold mb-1">Current Demand:</div>
+                        <div id="agency-demand-text" class="text-sm text-zinc-200 italic">"..."</div>
+                    </div>
+
+                    <button onclick="breakContract()" class="bg-red-900/20 hover:bg-red-900/40 border border-red-900 text-red-400 px-6 py-3 rounded font-bold uppercase text-xs w-full transition">
+                        Breach Contract (Penalty: -30% Subs)
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -307,7 +369,6 @@
                     <span class="text-right">Post <span id="penalty-req" class="text-pink-400 font-bold">Feet Pic</span><br><span class="text-[10px] text-zinc-500">(Earns $0.00)</span></span>
                 </div>
             </div>
-
             <div class="flex gap-2">
                 <button onclick="closeMiniGame()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 py-3 rounded text-xs text-zinc-400">Decline</button>
                 <button onclick="startCardGame()" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-3 rounded text-xs uppercase">Accept Challenge</button>
@@ -324,7 +385,6 @@
                 <div class="w-24 h-36 bg-white rounded flex items-center justify-center text-5xl font-black text-black" id="card-display">7</div>
                 <div class="w-24 h-36 bg-zinc-800 rounded flex items-center justify-center border-2 border-zinc-600 text-zinc-500 text-2xl font-bold" id="card-mystery">?</div>
             </div>
-
             <div class="flex gap-2">
                 <button onclick="guessCard('lower')" class="flex-1 bg-red-900/50 hover:bg-red-900 border border-red-800 text-red-200 py-3 rounded font-bold">LOWER ▼</button>
                 <button onclick="guessCard('higher')" class="flex-1 bg-green-900/50 hover:bg-green-900 border border-green-800 text-green-200 py-3 rounded font-bold">HIGHER ▲</button>
@@ -340,6 +400,18 @@
                 <button onclick="closePostModal()" class="text-zinc-500 hover:text-white"><i data-lucide="x"></i></button>
             </div>
             
+            <!-- TREND ALERT UI -->
+            <div class="bg-pink-900/20 border border-pink-500/50 p-3 rounded mb-4 flex justify-between items-center">
+                <div>
+                    <span class="text-pink-200 text-xs font-bold uppercase tracking-wider block">🔥 Daily Trend</span>
+                    <span class="text-white font-mono font-bold text-lg" id="post-trend-display">...</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-green-400 font-bold text-xs block">2x View Bonus</span>
+                    <span class="text-[10px] text-zinc-500">Include in caption</span>
+                </div>
+            </div>
+
             <!-- PENALTY MODE UI -->
             <div id="penalty-ui" class="hidden mb-6 bg-red-950/40 border border-red-900/50 p-4 rounded text-center">
                 <p class="text-red-500 text-xs font-bold uppercase mb-2 tracking-widest">DEBT COLLECTION</p>
@@ -366,10 +438,19 @@
                         </div>
                         <div onclick="selectVibe('wild')" id="vibe-wild" class="vibe-option cursor-pointer p-3 rounded border border-zinc-700 bg-zinc-800/50 text-center hover:bg-zinc-800 transition">
                             <span class="text-xl block mb-1">🔥</span>
-                            <span class="text-xs font-bold text-pink-500 block">WILD</span>
+                            <span class="text-xs font-bold text-zinc-300 block text-pink-500">WILD</span>
                             <div class="text-[9px] text-red-600 mt-1">-15 Rep</div>
                             <div class="text-[9px] text-zinc-500">High Pay</div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- NEW: Exclusivity Check -->
+                <div class="flex items-center gap-2 p-3 bg-zinc-800/50 rounded border border-zinc-800">
+                    <input type="checkbox" id="post-collab" class="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-pink-600 focus:ring-0">
+                    <div class="flex-1">
+                        <label for="post-collab" class="text-sm font-bold text-zinc-300">Collab / With Others</label>
+                        <p class="text-[10px] text-zinc-500">May anger jealous partners.</p>
                     </div>
                 </div>
             </div>
@@ -394,7 +475,6 @@
                         <span class="text-zinc-600 text-xs">No media selected</span>
                     </div>
                 </div>
-
                 <div>
                     <label class="text-xs font-bold text-zinc-500 uppercase mb-2 block">Caption</label>
                     <textarea id="post-caption" class="w-full bg-zinc-950 p-3 rounded border border-zinc-800 h-20 text-sm focus:outline-none focus:border-zinc-600 text-white resize-none" placeholder="Write something engaging..."></textarea>
@@ -409,7 +489,6 @@
 
     <!-- MAIN GAME CONTAINER -->
     <div id="game-container" class="hidden max-w-6xl w-full grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         <!-- Header -->
         <div class="col-span-1 lg:col-span-3 bg-zinc-900 p-5 rounded-xl border border-zinc-800 flex flex-wrap justify-between items-center shadow-lg">
             <div class="flex items-center gap-4">
@@ -442,12 +521,29 @@
                             <div class="absolute -top-4 left-0 text-[9px] text-zinc-500 hidden group-hover:block">Sanity</div>
                         </div>
                     </div>
+                    <!-- Energy Bar -->
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="zap" class="w-3 h-3 text-yellow-400"></i>
+                        <div class="w-full h-1.5 bg-zinc-800 rounded-full group relative">
+                            <div id="energy-bar" class="bg-yellow-500 h-full rounded-full transition-all" style="width: 100%"></div>
+                            <div class="absolute -top-4 left-0 text-[9px] text-zinc-500 hidden group-hover:block">Energy</div>
+                        </div>
+                    </div>
                 </div>
-
                 <div class="text-right">
-                    <div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Net Worth</div>
+                    <div class="flex items-center justify-end gap-1 mb-1">
+                        <div class="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Net Worth</div>
+                        <div class="group relative">
+                            <i data-lucide="info" class="w-3 h-3 text-zinc-600 cursor-pointer"></i>
+                            <div class="absolute right-0 top-6 w-48 bg-black border border-zinc-700 p-2 rounded shadow-xl hidden group-hover:block z-50 text-left">
+                                <div class="text-[10px] text-zinc-400 mb-1">Lifetime Stats</div>
+                                <div class="text-xs text-white">Gross: <span class="text-green-400" id="stat-gross">$0</span></div>
+                                <div class="text-xs text-white">Platform Tax: <span class="text-red-400" id="stat-tax">$0</span></div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="text-2xl font-bold font-mono tracking-tight" id="money-display-wrapper">
-                        <span id="money-display" class="text-red-500">-$500.00</span>
+                        <span id="money-display" class="text-red-500">-$200.00</span>
                     </div>
                 </div>
             </div>
@@ -462,9 +558,14 @@
                     <!-- App Header -->
                     <div class="h-16 flex items-center justify-between px-5 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur z-10 pt-4">
                         <span class="font-bold tracking-tight text-white italic">FanClub</span>
-                        <button onclick="toggleArchive()" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white">
-                            <i data-lucide="user" class="w-4 h-4"></i>
-                        </button>
+                        <div class="flex gap-2">
+                            <div id="fatigue-status" class="hidden w-8 h-8 rounded-full bg-red-900/50 flex items-center justify-center border border-red-500 animate-pulse" title="Fatigue Active">
+                                <i data-lucide="eye-off" class="w-4 h-4 text-red-400"></i>
+                            </div>
+                            <button onclick="toggleArchive()" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- EMPTY STATE -->
@@ -476,7 +577,7 @@
                         <div class="grid grid-cols-2 gap-2 w-full mb-6">
                             <div class="bg-zinc-900/50 p-3 rounded border border-zinc-800/50">
                                 <span class="block text-[10px] text-zinc-500 uppercase tracking-wider">Balance</span>
-                                <span class="font-mono text-sm font-bold text-white" id="phone-balance">-$500</span>
+                                <span class="font-mono text-sm font-bold text-white" id="phone-balance">-$200</span>
                             </div>
                             <div class="bg-zinc-900/50 p-3 rounded border border-zinc-800/50">
                                 <span class="block text-[10px] text-zinc-500 uppercase tracking-wider">Rate</span>
@@ -488,7 +589,7 @@
                             <i data-lucide="plus-circle" class="w-5 h-5"></i> Create Post
                         </button>
                         
-                        <p id="post-limit-msg" class="text-xs text-red-500 mt-2 hidden font-medium">Need sleep to recharge.</p>
+                        <p id="post-limit-msg" class="text-xs text-red-500 mt-2 hidden font-medium">Need sleep or Energy Drink.</p>
                     </div>
 
                     <!-- ACTIVE POST STATE -->
@@ -496,7 +597,6 @@
                         <div id="feed-media-container" class="bg-black w-full flex items-center justify-center relative group overflow-hidden border-b border-zinc-900 carousel-track h-[450px]">
                             <!-- CAROUSEL ITEMS INJECTED HERE -->
                         </div>
-
                         <div class="flex items-center justify-between p-4 border-b border-zinc-900">
                             <div class="flex flex-col">
                                 <div class="flex gap-2 items-center">
@@ -509,14 +609,12 @@
                                 Modest
                             </div>
                         </div>
-
                         <div class="px-4 pb-2 pt-3">
                             <div class="text-sm text-zinc-300">
                                 <span class="font-bold text-white mr-1" id="post-handle">@user</span>
                                 <span id="post-caption-display" class="text-zinc-400">...</span>
                             </div>
                         </div>
-
                         <div class="px-4 pt-4 border-t border-zinc-900 mt-2">
                             <h4 class="text-[10px] font-bold text-zinc-600 uppercase mb-3 tracking-widest">Comments</h4>
                             <div id="comments-container" class="space-y-3 text-sm pb-4"></div>
@@ -573,11 +671,13 @@
                             <span>Apartment Rent</span>
                             <span id="cost-rent" class="text-white font-mono">-$75.00</span>
                         </div>
-                        <div class="flex justify-between items-center text-zinc-400">
-                            <span>Food & Lifestyle</span>
-                            <span id="cost-living" class="text-white font-mono">-$40.00</span>
+                        <div id="dynamic-expenses-container">
+                             <!-- Dynamic daily costs go here -->
                         </div>
-                        <div id="extra-costs-container"></div>
+                        <div id="loan-payment-container" class="hidden flex justify-between items-center bg-green-950/20 p-2 rounded border border-green-900/30">
+                            <span class="text-green-400 text-xs font-bold uppercase">Loan Payments</span>
+                            <span id="cost-loan" class="text-green-400 font-mono">-$0.00</span>
+                        </div>
                         <div id="tax-container" class="hidden flex justify-between items-center bg-red-950/20 p-2 rounded border border-red-900/30">
                             <span class="text-red-400 text-xs font-bold uppercase">Platform Tax</span>
                             <span id="cost-tax" class="text-red-400 font-mono">-$0.00</span>
@@ -596,42 +696,67 @@
                             <i data-lucide="gamepad-2" class="text-zinc-500 w-5 h-5"></i> Activities
                         </h2>
                         
-                        <div class="grid grid-cols-2 gap-2 mb-3">
-                            <button onclick="openShopModal()" class="bg-zinc-800 hover:bg-zinc-700 p-3 rounded text-sm flex flex-col items-center justify-center gap-1 border border-zinc-700">
-                                <i data-lucide="shopping-bag" class="text-pink-500 w-5 h-5"></i>
-                                <span class="text-zinc-300 text-xs font-bold">Shop</span>
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <button onclick="openShopModal()" class="bg-zinc-800 hover:bg-zinc-700 p-2 rounded text-sm flex flex-col items-center justify-center gap-1 border border-zinc-700">
+                                <i data-lucide="shopping-bag" class="text-pink-500 w-4 h-4"></i>
+                                <span class="text-zinc-300 text-[10px] font-bold">Shop</span>
                             </button>
-                            <button onclick="openAgencyModal()" id="btn-agency" class="bg-zinc-800 hover:bg-zinc-700 p-3 rounded text-sm flex flex-col items-center justify-center gap-1 border border-zinc-700">
-                                <i data-lucide="briefcase" class="text-purple-500 w-5 h-5"></i>
-                                <span class="text-zinc-300 text-xs font-bold">Agency</span>
+                            <button onclick="openAgencyModal()" id="btn-agency" class="bg-zinc-800 hover:bg-zinc-700 p-2 rounded text-sm flex flex-col items-center justify-center gap-1 border border-zinc-700">
+                                <i data-lucide="briefcase" class="text-purple-500 w-4 h-4"></i>
+                                <span class="text-zinc-300 text-[10px] font-bold">Agency</span>
+                            </button>
+                            <button onclick="openBankModal()" class="bg-zinc-800 hover:bg-zinc-700 p-2 rounded text-sm flex flex-col items-center justify-center gap-1 border border-zinc-700">
+                                <i data-lucide="landmark" class="text-green-500 w-4 h-4"></i>
+                                <span class="text-zinc-300 text-[10px] font-bold">Bank</span>
                             </button>
                         </div>
                         
                         <!-- Mini Game Trigger -->
-                        <button onclick="triggerMiniGame()" id="btn-minigame" class="w-full bg-zinc-900 hover:bg-zinc-800 p-4 rounded text-sm flex items-center justify-between group border border-yellow-900/30 hover:border-yellow-700/50 transition-all">
+                        <button onclick="triggerMiniGame()" id="btn-minigame" class="w-full bg-zinc-900 hover:bg-zinc-800 p-4 rounded text-sm flex items-center justify-between group border border-yellow-900/30 hover:border-yellow-700/50 transition-all mb-2">
                             <div class="text-left">
                                 <span class="block font-bold text-yellow-500">Fan Challenge</span>
                                 <span class="text-xs text-zinc-500 group-hover:text-zinc-400">Risk/Reward Mini-Game</span>
                             </div>
                             <i data-lucide="chevron-right" class="text-zinc-600 group-hover:text-white"></i>
                         </button>
-                    </div>
-
-                    <div class="mt-4">
-                        <button onclick="endDay()" class="w-full bg-zinc-100 hover:bg-white text-black font-bold py-4 rounded-lg shadow-lg flex justify-center items-center gap-2 transition transform active:scale-95">
-                            <i data-lucide="moon" class="w-4 h-4"></i> End Day & Process Bills
+                        
+                        <!-- Referral Trigger -->
+                        <button onclick="buyReferral()" class="w-full bg-zinc-900 hover:bg-zinc-800 p-4 rounded text-sm flex items-center justify-between group border border-blue-900/30 hover:border-blue-700/50 transition-all mb-2">
+                            <div class="text-left">
+                                <span class="block font-bold text-blue-500">Recruit Friend</span>
+                                <span class="text-xs text-zinc-500 group-hover:text-zinc-400">Cost: $100 (50% Fail Rate)</span>
+                            </div>
+                            <i data-lucide="user-plus" class="text-zinc-600 group-hover:text-white"></i>
                         </button>
-                        <p class="text-[10px] text-center text-zinc-600 mt-3">Rent is due every night.</p>
+
+                        <!-- Parasocial Action Button (Hidden by default) -->
+                        <div id="parasocial-action-container" class="hidden">
+                            <button onclick="chatParasocial()" class="w-full bg-pink-900/30 hover:bg-pink-900/50 p-4 rounded text-sm flex items-center justify-between group border border-pink-700/50 transition-all">
+                                <div class="text-left">
+                                    <span class="block font-bold text-pink-400">Chat with Partner</span>
+                                    <span class="text-xs text-zinc-500 group-hover:text-zinc-300">Cost: 30 Energy (Required)</span>
+                                </div>
+                                <i data-lucide="message-circle-heart" class="text-pink-500"></i>
+                            </button>
+                        </div>
                     </div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="takeDayOff()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold py-3 rounded-lg shadow-lg flex justify-center items-center gap-1 transition text-xs border border-zinc-700">
+                            <i data-lucide="coffee" class="w-3 h-3"></i> Day Off
+                        </button>
+                        <button onclick="endDay()" class="flex-[2] bg-zinc-100 hover:bg-white text-black font-bold py-3 rounded-lg shadow-lg flex justify-center items-center gap-2 transition transform active:scale-95 text-xs">
+                            <i data-lucide="moon" class="w-3 h-3"></i> End Day & Bills
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-center text-zinc-600 mt-2">Day Off resets Fatigue & Streak.</p>
                 </div>
             </div>
             
             <!-- Log -->
             <div class="bg-black/40 rounded-xl p-4 h-32 overflow-y-auto log-scroll border border-zinc-800 text-xs font-mono text-zinc-400" id="game-log">
-                <div class="text-green-500">> System initialized. Debt: -$500.</div>
+                <div class="text-green-500">> System initialized. Debt: -$200.</div>
             </div>
         </div>
-
     </div>
 
     <!-- GAME OVER -->
@@ -650,7 +775,6 @@
                     <span id="final-subs" class="text-white font-bold">...</span>
                 </div>
             </div>
-
             <button onclick="location.reload()" class="w-full bg-white text-black font-bold py-4 rounded hover:bg-zinc-200 uppercase tracking-widest transition">Restart Simulation</button>
         </div>
     </div>
@@ -663,57 +787,171 @@
             { name: "QUEEN", threshold: 5000, color: "text-pink-500", desc: "Platform Elite", bonus: 5, tax: 0.25 }
         ];
 
-        // Adjusted Bonuses (Harder)
         const AGE_DATA = {
             "18-19": { postBonus: 10, likeBonus: 2 },
             "20-24": { postBonus: 5, likeBonus: 1 },
-            "25+":   { postBonus: 2, likeBonus: 0.5 }
+            "25+": { postBonus: 2, likeBonus: 0.5 }
         };
+
+        const EXPENSE_FLAVOR = [
+            "UberEats Binge", "Forgot Subscription", "Makeup Refill", "Broken Nail", "Data Overage", "Impulse Buy", "Vet Bill", "Parking Ticket"
+        ];
+
+        const DAILY_TRENDS = [
+            "Sabrina Tears", "Bedroom Eyes", "Post Shower", "Yoga Pants",
+            "Lip Bite", "Silhouette", "Messy Hair", "Night Gown",
+            "Gym Sweat", "Cherry Red", "Wet Look", "Mirror Selfie"
+        ];
+
+        const LOAN_TYPES = {
+            'payday': { name: "Payday Loan", amount: 500, total: 750, days: 3 },
+            'biz': { name: "Business Loan", amount: 2000, total: 2500, days: 10 },
+            'shark': { name: "Shark Loan", amount: 5000, total: 10000, days: 30 }
+        };
+
+        const SHOP_ITEMS = [
+            // Consumables
+            { id: 'coffee', name: 'Iced Latte', type: 'consumable', price: 20, desc: '+15 Energy', effect: (s) => { s.energy = Math.min(100, s.energy + 15); log("Caffeine hit. +15 Energy.", "text-yellow-400"); } },
+            { id: 'spa', name: 'Spa Day', type: 'consumable', price: 100, desc: '+40 Sanity', effect: (s) => { s.sanity = Math.min(100, s.sanity + 40); log("Relaxed. +40 Sanity.", "text-pink-400"); } },
+            { id: 'energy_drink', name: 'Glitch Energy', type: 'consumable', price: 45, desc: '+40 Energy', effect: (s) => { s.energy = Math.min(100, s.energy + 40); log("Power up. +40 Energy.", "text-yellow-400"); } },
+            { id: 'pr_stunt', name: 'PR Stunt', type: 'consumable', price: 250, desc: '+25 Reputation', effect: (s) => { s.reputation = Math.min(100, s.reputation + 25); log("Publicity stunt worked. +25 Rep.", "text-blue-400"); } },
+            
+            // Hardware
+            { id: 'ringlight', name: 'Ring Light', type: 'hardware', price: 200, desc: '+5% Tip Chance', durability: true, effect: (s) => { s.upgrades.ringlight = true; s.equipmentHealth.ringlight = 100; } },
+            { id: 'mirrorless', name: '4K Mirrorless', type: 'hardware', price: 1500, desc: '+15% Sub Growth', durability: true, effect: (s) => { s.upgrades.camera = true; s.equipmentHealth.camera = 100; } },
+            { id: 'studio', name: 'Pro Studio', type: 'hardware', price: 5000, desc: 'Unlocks QUEEN Rank', durability: true, effect: (s) => { s.upgrades.studio = true; s.equipmentHealth.studio = 100; } },
+            { id: 'apartment', name: 'Luxury Apt', type: 'hardware', price: 2500, desc: 'Passive Sanity Heal', effect: (s) => { s.upgrades.apartment = true; } },
+
+            // Clout
+            { id: 'bot_farm', name: 'Bot Farm', type: 'clout', price: 300, desc: '+200 Subs (RISK!)', effect: (s) => { 
+                s.subscribers += 200; 
+                s.reputation -= 15; 
+                log("Bots added. Rep dropped -15.", "text-red-400"); 
+            }},
+            { id: 'verify', name: 'Blue Check', type: 'clout', price: 1000, desc: '+Max Rep', effect: (s) => { 
+                s.reputation = 100;
+                s.upgrades.verified = true;
+                log("Verified status acquired.", "text-blue-500");
+            }},
+            { id: 'security', name: 'Cyber Security', type: 'clout', price: 500, desc: 'Prevents Leaks', effect: (s) => { s.upgrades.security = true; } },
+        ];
 
         const AGENCIES = {
-            "chatter": { name: "Chatter Farm", tax: 0.40, retainer: 0, desc: "+10 Sanity/Day", color: "text-blue-400" },
-            "viral": { name: "Viral House", tax: 0.50, retainer: 0, desc: "Forces Wild, 2x Growth", color: "text-pink-500" },
-            "boutique": { name: "Boutique Mgmt", tax: 0.20, retainer: 35, desc: "Low Tax, High Fee", color: "text-yellow-400" }
+            "chatter": { 
+                name: "Chatter Farm", 
+                tax: 0.40, 
+                currentTax: 0.40,
+                retainer: 0, 
+                color: "text-blue-400",
+                desc: "We manage DMs. Reply often.",
+                requirement: "Must Reply to 1 Comment/Day",
+                check: (state) => state.repliedToday,
+                failMsg: "You ignored the fans.",
+                perk: "Slows Sanity drain by 20%."
+            },
+            "viral": { 
+                name: "Viral House", 
+                tax: 0.50,
+                currentTax: 0.50, 
+                retainer: 0, 
+                color: "text-pink-500", 
+                desc: "Go big. WILD posts only.",
+                requirement: "Must post WILD content.",
+                check: (state) => state.lastVibe === 'wild',
+                failMsg: "Content too boring.",
+                perk: "Double subscriber growth."
+            },
+            "boutique": { 
+                name: "Boutique Mgmt", 
+                tax: 0.20,
+                currentTax: 0.20,
+                retainer: 50, 
+                color: "text-yellow-400", 
+                desc: "Premium. Keep Rep high.",
+                requirement: "Reputation > 70",
+                check: (state) => state.reputation > 70,
+                failMsg: "Reputation too low.",
+                perk: "Prevents major scandals."
+            }
         };
 
-        const BASE_LIKE_RATE = 2.0; 
+        const BASE_LIKE_RATE = 2.0;
         const PENALTY_TASKS = ["Feet Pic", "Cosplay", "Abs", "No Makeup", "Messy Hair"];
-
         const COMMENTS_WILD = ["OMG YES", "Take my money", "Finally", "Queen energy", "Obsessed"];
         const COMMENTS_SAFE = ["Cute fit", "Nice lighting", "Pretty", "Okay I guess", "Smile more", "Glow up"];
         const COMMENTS_BAD = ["Boring", "Unsubbed", "Show more", "Waste of time"];
 
         // --- STATE ---
         let player = { handle: "", photo: null, ageRange: "20-24", location: "Los Angeles" };
+        
         let state = {
             day: 1,
-            money: -500.00,
+            money: -200.00,
             energy: 100,
             reputation: 70,
             sanity: 100,
             subscribers: 0,
             postedToday: false,
+            repliedToday: false,
             rankIdx: 0,
-            costs: { rent: 75, living: 40, extra: [], lastTax: 0 }, 
+            costs: { rent: 75, lastTax: 0 },
+            dynamicExpenses: [], 
             activePost: null,
             pastPosts: [],
-            tempMediaUrls: [], // Updated to Array
+            tempMedia: [], 
             currentEarnings: 0,
             selectedVibe: 'modest',
             lastVibe: null,
             penaltyActive: false,
             penaltyTask: "",
-            agency: null, // Stores agency key (chatter, viral, boutique)
-            upgrades: { camera: false, security: false, studio: false, ringlight: false }
+            dailyTrend: "",
+            
+            // Hardcore Mechanics
+            burnoutDaysLeft: 0,
+            leakPenaltyActive: 0, 
+            referralCount: 0,
+            referralIncome: 0,
+            
+            // Stats
+            lifetimeEarnings: 0,
+            platformRevenue: 0,
+
+            // Bank
+            loans: [], // { name, totalOwed, dailyPay, daysLeft }
+
+            // Fatigue System
+            streak: 0,
+            fatigue: 0, // "Dead Eyes" level
+
+            // Relationships
+            parasocial: { active: false, maintained: false },
+            blackmail: { active: false, multiplier: 1 },
+
+            // Agency State
+            agency: null,
+            agencySatisfaction: 100, 
+            
+            upgrades: { camera: false, security: false, studio: false, ringlight: false, apartment: false, verified: false },
+            equipmentHealth: { camera: 100, ringlight: 100, studio: 100 }
         };
+
         let liveInterval = null;
         let cardGame = { current: 0 };
         let selectedAgencyTemp = null;
+        let activeShopTab = 'consumable';
 
         // --- HELPER ---
         function setText(id, text) {
             const el = document.getElementById(id);
             if(el) el.innerText = text;
+        }
+
+        function log(msg, cls="text-zinc-400") {
+            const div = document.createElement('div');
+            div.className = `mb-1 ${cls}`;
+            div.innerText = `> ${msg}`;
+            const logEl = document.getElementById('game-log');
+            if(logEl) logEl.prepend(div);
         }
 
         // --- REGISTRATION ---
@@ -736,7 +974,6 @@
             
             setText('verification-status', "Verifying identity...");
             document.getElementById('scan-overlay').classList.remove('hidden');
-
             setTimeout(() => {
                 document.getElementById('scan-overlay').classList.add('hidden');
                 setText('verification-status', "Verified");
@@ -754,7 +991,6 @@
             player.handle = "@" + h.replace('@','');
             player.location = loc;
             if(!document.querySelector('.age-btn.selected')) selectAge('20-24');
-
             setText('player-handle-display', player.handle);
             document.getElementById('player-avatar-display').src = player.photo;
             document.getElementById('phone-avatar-big').src = player.photo;
@@ -768,25 +1004,193 @@
 
         function initGame() {
             lucide.createIcons();
+            updateTrend(); // Set initial trend
             updateUI();
-            log(`Account active. Debt: -$500.00`, "text-red-500");
+            log(`Account active. Starter Debt: -$200.00`, "text-red-500");
+        }
+
+        function updateTrend() {
+            state.dailyTrend = DAILY_TRENDS[Math.floor(Math.random() * DAILY_TRENDS.length)];
+            log(`🔥 TREND ALERT: Post with "${state.dailyTrend}" in caption!`, "text-pink-500 font-bold");
+            updateUI();
         }
 
         // --- MODALS ---
         function openTierModal() { document.getElementById('tier-modal').classList.remove('hidden'); }
         function closeTierModal() { document.getElementById('tier-modal').classList.add('hidden'); }
         
-        function openShopModal() { document.getElementById('shop-modal').classList.remove('hidden'); }
+        // --- SHOP SYSTEM ---
+        function openShopModal() { 
+            if(state.burnoutDaysLeft > 0) return alert("You are burned out. You can only sleep.");
+            document.getElementById('shop-modal').classList.remove('hidden'); 
+            renderShop();
+        }
         function closeShopModal() { document.getElementById('shop-modal').classList.add('hidden'); }
 
-        function openAgencyModal() { 
-            document.getElementById('agency-modal').classList.remove('hidden'); 
+        function switchShopTab(tab) {
+            activeShopTab = tab;
+            document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            renderShop();
+        }
+
+        function renderShop() {
+            setText('shop-balance', `$${state.money.toFixed(0)}`);
+            const container = document.getElementById('shop-content');
+            container.innerHTML = "";
+
+            const items = SHOP_ITEMS.filter(i => i.type === activeShopTab);
+
+            items.forEach(item => {
+                const owned = state.upgrades[item.id] === true;
+                const canAfford = state.money >= item.price;
+                
+                let btnClass = "bg-zinc-700 text-white hover:bg-green-600";
+                let btnText = `$${item.price}`;
+                let disabled = false;
+                let isBroken = false;
+                
+                // Durability Logic
+                if (owned && item.durability) {
+                    const health = state.equipmentHealth[item.id];
+                    if (health <= 0) {
+                        isBroken = true;
+                        btnClass = "bg-red-900 text-red-200 border border-red-500 hover:bg-red-800";
+                        btnText = `Repair ($${item.price / 2})`;
+                        disabled = false; // Enable for repair
+                    } else {
+                        btnClass = "bg-green-900/50 text-green-400 border border-green-800 cursor-default";
+                        btnText = `${health}% Health`;
+                        disabled = true;
+                    }
+                } else if (owned) {
+                    btnClass = "bg-green-900/50 text-green-400 border border-green-800 cursor-default";
+                    btnText = "Owned";
+                    disabled = true;
+                } else if (!canAfford) {
+                    btnClass = "bg-zinc-800 text-zinc-500 cursor-not-allowed";
+                    disabled = true;
+                }
+
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-zinc-900 p-3 rounded border border-zinc-800";
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold text-white text-sm">${item.name}</div>
+                        <div class="text-[10px] text-zinc-400">${item.desc}</div>
+                    </div>
+                    <button onclick="${isBroken ? `repairItem('${item.id}', ${item.price})` : `buyShopItem('${item.id}')`}" class="${btnClass} text-xs px-3 py-1.5 rounded font-bold transition" ${disabled ? 'disabled' : ''}>
+                        ${btnText}
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function repairItem(id, originalPrice) {
+            const cost = originalPrice / 2;
+            if(state.money < cost) return alert("Can't afford repairs.");
+            state.money -= cost;
+            state.equipmentHealth[id] = 100;
+            log(`Repaired ${id}. -$${cost}`, "text-yellow-400");
+            renderShop();
+            updateUI();
+        }
+
+        function buyShopItem(id) {
+            const item = SHOP_ITEMS.find(i => i.id === id);
+            if (!item) return;
+            if (state.money < item.price) return;
+
+            state.money -= item.price;
+            item.effect(state);
+            renderShop();
+            updateUI();
+        }
+
+        // --- BANK SYSTEM ---
+        function openBankModal() {
+            if(state.burnoutDaysLeft > 0) return alert("You are burned out.");
+            document.getElementById('bank-modal').classList.remove('hidden');
+            renderBank();
+        }
+        function closeBankModal() { document.getElementById('bank-modal').classList.add('hidden'); }
+
+        function renderBank() {
+            const container = document.getElementById('active-loans-container');
+            container.innerHTML = "";
+            
+            if (state.loans.length === 0) {
+                container.innerHTML = '<div class="text-zinc-600 text-xs italic">No active loans.</div>';
+                return;
+            }
+
+            state.loans.forEach((loan, idx) => {
+                const div = document.createElement('div');
+                div.className = "bg-zinc-800 p-3 rounded border border-zinc-700 flex justify-between items-center";
+                div.innerHTML = `
+                    <div>
+                        <div class="text-white font-bold text-sm">${loan.name}</div>
+                        <div class="text-[10px] text-zinc-400">Owe: $${loan.totalOwed.toFixed(2)} • ${loan.daysLeft} days left</div>
+                    </div>
+                    <button onclick="payLoanEarly(${idx})" class="bg-zinc-700 hover:bg-green-700 text-white text-xs px-2 py-1 rounded">Pay All</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function takeLoan(type) {
+            const loanData = LOAN_TYPES[type];
+            state.money += loanData.amount;
+            state.loans.push({
+                name: loanData.name,
+                totalOwed: loanData.total,
+                dailyPay: loanData.total / loanData.days,
+                daysLeft: loanData.days
+            });
+            log(`Loan taken: +$${loanData.amount}. Debt increased.`, "text-green-400");
+            renderBank();
+            updateUI();
+        }
+
+        function payLoanEarly(idx) {
+            const loan = state.loans[idx];
+            if (state.money < loan.totalOwed) return alert("Not enough cash to pay off loan.");
+            
+            state.money -= loan.totalOwed;
+            log(`Paid off ${loan.name}! -$${loan.totalOwed.toFixed(2)}`, "text-yellow-400");
+            state.loans.splice(idx, 1);
+            renderBank();
+            updateUI();
+        }
+
+        // --- AGENCY SYSTEM ---
+        function openAgencyModal() {
+            if(state.burnoutDaysLeft > 0) return alert("You are burned out. You can only sleep.");
+            document.getElementById('agency-modal').classList.remove('hidden');
+            
             if(state.agency) {
                 document.getElementById('agency-selection-ui').classList.add('hidden');
                 document.getElementById('btn-sign-agency').classList.add('hidden');
                 document.getElementById('agency-active-ui').classList.remove('hidden');
-                setText('current-agency-name', AGENCIES[state.agency].name);
+                
+                const ag = AGENCIES[state.agency];
+                setText('current-agency-name', ag.name);
+                setText('agency-split-display', `${(ag.currentTax * 100).toFixed(1)}% Tax`);
+                setText('agency-demand-text', ag.requirement);
+                
+                // Update Satisfaction Bar
+                const bar = document.getElementById('agency-satisfaction-bar');
+                bar.style.width = `${state.agencySatisfaction}%`;
+                setText('agency-satisfaction-text', `${state.agencySatisfaction}/100`);
+                
+                // Color logic
+                if(state.agencySatisfaction > 70) bar.className = "h-full bg-green-500 transition-all duration-500";
+                else if(state.agencySatisfaction > 30) bar.className = "h-full bg-yellow-500 transition-all duration-500";
+                else bar.className = "h-full bg-red-500 transition-all duration-500";
+
             } else {
+                renderAgencySelection();
                 document.getElementById('agency-selection-ui').classList.remove('hidden');
                 document.getElementById('btn-sign-agency').classList.remove('hidden');
                 document.getElementById('agency-active-ui').classList.add('hidden');
@@ -794,7 +1198,30 @@
         }
         function closeAgencyModal() { document.getElementById('agency-modal').classList.add('hidden'); }
 
-        // --- AGENCY ---
+        function renderAgencySelection() {
+            const container = document.getElementById('agency-selection-ui');
+            container.innerHTML = "";
+            
+            Object.keys(AGENCIES).forEach(key => {
+                const ag = AGENCIES[key];
+                const div = document.createElement('div');
+                div.id = `agency-${key}`;
+                div.className = "agency-card cursor-pointer bg-zinc-800 p-4 rounded border border-zinc-700 hover:bg-zinc-700 transition";
+                div.onclick = () => selectAgencyOption(key);
+                
+                div.innerHTML = `
+                    <div class="font-bold ${ag.color} mb-1">${ag.name}</div>
+                    <div class="text-xs text-zinc-300 mb-2 h-8">"${ag.desc}"</div>
+                    <ul class="text-[10px] text-zinc-400 space-y-1 mb-3">
+                        <li class="text-red-400">-${(ag.tax*100)}% Tax</li>
+                        ${ag.retainer > 0 ? `<li class="text-red-400">$${ag.retainer}/Day Fee</li>` : ''}
+                        <li class="text-zinc-500 italic">Req: ${ag.requirement}</li>
+                    </ul>
+                `;
+                container.appendChild(div);
+            });
+        }
+
         function selectAgencyOption(type) {
             selectedAgencyTemp = type;
             document.querySelectorAll('.agency-card').forEach(c => c.classList.remove('selected'));
@@ -806,71 +1233,37 @@
         function signAgency() {
             if(!selectedAgencyTemp) return;
             state.agency = selectedAgencyTemp;
+            state.agencySatisfaction = 80; // Start at 80
             closeAgencyModal();
             log(`Signed with ${AGENCIES[state.agency].name}.`, "text-purple-400");
             updateUI();
         }
 
         function breakContract() {
-            if(state.money < 500) return alert("Need $500 to break contract!");
+            if(state.money < 500) return alert("Need $500 for legal fees!");
             state.money -= 500;
-            log(`Contract Broken. Paid $500 penalty.`, "text-red-400");
+            const lostSubs = Math.floor(state.subscribers * 0.30);
+            state.subscribers -= lostSubs;
+            
+            log(`Contract Broken. -$500. Lost ${lostSubs} subs (Agency Ownership Clause).`, "text-red-500 font-bold");
             state.agency = null;
+            // Reset taxes
+            AGENCIES['viral'].currentTax = AGENCIES['viral'].tax;
+            
             selectedAgencyTemp = null;
             closeAgencyModal();
             updateUI();
         }
 
-        // --- SHOP ---
-        function buyItem(item, cost) {
-            if(state.money < cost) return alert("Not enough cash!");
-            state.money -= cost;
-            
-            if(item === 'spa') {
-                state.sanity = Math.min(100, state.sanity + 40);
-                log("Spa Day: Sanity restored.", "text-pink-400");
-            }
-            if(item === 'pr') {
-                state.reputation = Math.min(100, state.reputation + 25);
-                log("PR Campaign: Reputation improved.", "text-blue-400");
-            }
-            if(item === 'security') {
-                state.upgrades.security = true;
-                document.getElementById('btn-buy-security').disabled = true;
-                document.getElementById('btn-buy-security').innerText = "Owned";
-                log("Security System installed.", "text-zinc-300");
-            }
-            if(item === 'ringlight') {
-                state.upgrades.ringlight = true;
-                document.getElementById('btn-buy-ringlight').disabled = true;
-                document.getElementById('btn-buy-ringlight').innerText = "Owned";
-                log("Ring Light bought.", "text-zinc-300");
-            }
-            if(item === 'mirrorless') {
-                state.upgrades.camera = true; // Camera logic
-                document.getElementById('btn-buy-mirrorless').disabled = true;
-                document.getElementById('btn-buy-mirrorless').innerText = "Owned";
-                log("4K Mirrorless bought.", "text-yellow-400");
-            }
-            if(item === 'studio') {
-                state.upgrades.studio = true;
-                document.getElementById('btn-buy-studio').disabled = true;
-                document.getElementById('btn-buy-studio').innerText = "Owned";
-                log("Pro Studio bought. Queen rank unlocked.", "text-purple-400");
-            }
-            updateUI();
-        }
-
         // --- MINI GAME ---
         function triggerMiniGame() {
+            if(state.burnoutDaysLeft > 0) return alert("You are burned out.");
             if(state.money < -1000) return alert("You are too bankrupt to bet.");
             const task = PENALTY_TASKS[Math.floor(Math.random() * PENALTY_TASKS.length)];
             setText('penalty-req', task);
             document.getElementById('minigame-modal').classList.remove('hidden');
         }
-
         function closeMiniGame() { document.getElementById('minigame-modal').classList.add('hidden'); }
-
         function startCardGame() {
             closeMiniGame();
             document.getElementById('card-game-modal').classList.remove('hidden');
@@ -878,7 +1271,6 @@
             setText('card-display', cardGame.current);
             setText('card-mystery', "?");
         }
-
         function guessCard(guess) {
             const next = Math.floor(Math.random() * 13) + 1;
             setText('card-mystery', next);
@@ -901,79 +1293,142 @@
             }, 1000);
         }
 
+        // --- REFERRAL ---
+        function buyReferral() {
+            if(state.burnoutDaysLeft > 0) return alert("You are burned out.");
+            if(state.money < 100) return alert("Need $100 to bribe a friend.");
+            state.money -= 100;
+            
+            if(Math.random() > 0.5) {
+                state.referralCount++;
+                log("Friend recruited! They might earn you money.", "text-green-400");
+            } else {
+                log("Friend took the $100 and ghosted you.", "text-red-400");
+            }
+            updateUI();
+        }
+
+        // --- PARASOCIAL & BLACKMAIL ---
+        function triggerBlackmail() {
+            const cost = 500 * state.blackmail.multiplier;
+            setText('blackmail-cost', `-$${cost}`);
+            document.getElementById('blackmail-modal').classList.remove('hidden');
+        }
+
+        function handleBlackmail(choice) {
+            document.getElementById('blackmail-modal').classList.add('hidden');
+            if (choice === 'pay') {
+                const cost = 500 * state.blackmail.multiplier;
+                if (state.money < cost) {
+                    log("Couldn't afford hush money. Link leaked.", "text-red-600 font-bold");
+                    state.reputation = 10;
+                    state.sanity = 10;
+                } else {
+                    state.money -= cost;
+                    log(`Paid hush money ($${cost}). Safe for now...`, "text-yellow-400");
+                    // 50% chance they come back
+                    if (Math.random() > 0.5) {
+                        state.blackmail.multiplier *= 2;
+                        log("Threat Level Increased.", "text-red-400");
+                    }
+                }
+            } else {
+                log("Ignored threat. Doxxed. Stats crashed to 10.", "text-red-600 font-bold");
+                state.reputation = 10;
+                state.sanity = 10;
+            }
+            updateUI();
+        }
+
+        function triggerParasocialOffer() {
+            document.getElementById('parasocial-modal').classList.remove('hidden');
+        }
+
+        function acceptParasocial() {
+            document.getElementById('parasocial-modal').classList.add('hidden');
+            state.parasocial.active = true;
+            state.parasocial.maintained = false;
+            log("Accepted Exclusive Partner. Don't post other people.", "text-pink-500 font-bold");
+            updateUI();
+        }
+
+        function chatParasocial() {
+            if (state.energy < 30) return log("Too tired to chat.", "text-red-400");
+            state.energy -= 30;
+            state.parasocial.maintained = true;
+            log("Chatted with partner. Relationship maintained.", "text-pink-400");
+            updateUI();
+        }
+
         // --- POSTING ---
         function selectVibe(vibe) {
             if(state.penaltyActive) return;
-            if(state.agency === 'viral' && vibe !== 'wild') {
-                alert("Viral House Agency requires WILD content only!");
-                return;
-            }
             state.selectedVibe = vibe;
             document.querySelectorAll('.vibe-option').forEach(e => e.classList.remove('selected'));
             document.getElementById(`vibe-${vibe}`).classList.add('selected');
         }
-
         function previewFile() {
             const file = document.getElementById('post-file').files[0];
             if(file) {
                 const url = URL.createObjectURL(file);
-                addMediaToState(url);
+                // Detect type
+                const type = file.type.startsWith('video/') ? 'video' : 'image';
+                addMediaToState(url, type);
             }
         }
-
         function addUrl() {
             const url = document.getElementById('post-url').value;
             if(url) {
-                addMediaToState(url);
+                // Determine type by extension roughly, default to image
+                const isVideo = url.match(/\.(mp4|webm|ogg)$/i);
+                addMediaToState(url, isVideo ? 'video' : 'image');
                 document.getElementById('post-url').value = "";
             }
         }
-
-        function addMediaToState(url) {
-            if(state.tempMediaUrls.length >= 3) return alert("Max 3 items per post.");
-            state.tempMediaUrls.push(url);
+        function addMediaToState(url, type) {
+            if(state.tempMedia.length >= 3) return alert("Max 3 items per post.");
+            state.tempMedia.push({url, type});
             renderMediaList();
         }
-
         function renderMediaList() {
             const list = document.getElementById('media-list');
-            if(!list) return; // Fix for null error
+            if(!list) return;
             
             list.innerHTML = "";
-            state.tempMediaUrls.forEach((url, index) => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = "w-10 h-10 object-cover rounded border border-zinc-700 flex-shrink-0";
-                list.appendChild(img);
+            state.tempMedia.forEach((item) => {
+                let el;
+                if (item.type === 'video') {
+                    el = document.createElement('video');
+                    el.src = item.url;
+                    el.className = "w-10 h-10 object-cover rounded border border-zinc-700 flex-shrink-0 bg-black";
+                } else {
+                    el = document.createElement('img');
+                    el.src = item.url;
+                    el.className = "w-10 h-10 object-cover rounded border border-zinc-700 flex-shrink-0";
+                }
+                list.appendChild(el);
             });
             
             const preview = document.getElementById('media-preview-area');
-            if(!preview) return; // Safety Check
-
-            // Preview area shows first image
-            if(state.tempMediaUrls.length > 0) {
-                preview.innerHTML = `<img src="${state.tempMediaUrls[0]}" class="w-full h-full object-cover">`;
+            if(!preview) return;
+            if(state.tempMedia.length > 0) {
+                const first = state.tempMedia[0];
+                if(first.type === 'video') {
+                    preview.innerHTML = `<video src="${first.url}" class="w-full h-full object-cover" autoplay loop muted></video>`;
+                } else {
+                    preview.innerHTML = `<img src="${first.url}" class="w-full h-full object-cover">`;
+                }
             } else {
                 preview.innerHTML = '<span class="text-zinc-600 text-xs">No media selected</span>';
             }
         }
-
         function openPostModal() {
+            if(state.burnoutDaysLeft > 0) return alert("You are burned out. You can only sleep.");
             if(state.energy < 15) return log("Energy depleted. Sleep required.", "text-red-400");
             document.getElementById('post-modal').classList.remove('hidden');
-            state.tempMediaUrls = [];
+            state.tempMedia = [];
             renderMediaList();
-
-            // Disable modest if agency viral
-            if(state.agency === 'viral') {
-                document.getElementById('vibe-modest').classList.add('disabled-option');
-                document.getElementById('vibe-tease').classList.add('disabled-option');
-                selectVibe('wild');
-            } else {
-                document.getElementById('vibe-modest').classList.remove('disabled-option');
-                document.getElementById('vibe-tease').classList.remove('disabled-option');
-            }
-
+            
             if(state.penaltyActive) {
                 document.getElementById('penalty-ui').classList.remove('hidden');
                 document.getElementById('normal-ui').classList.add('hidden');
@@ -981,35 +1436,39 @@
                 setText('post-modal-title', "Settle Penalty");
                 setText('btn-submit-post', "Upload Penalty Content");
                 const sBtn = document.getElementById('btn-submit-post');
-                if(sBtn) {
-                    sBtn.classList.add('bg-red-600', 'text-white', 'hover:bg-red-500');
-                    sBtn.classList.remove('bg-white', 'text-black');
-                }
+                sBtn.classList.add('bg-red-600', 'text-white', 'hover:bg-red-500');
+                sBtn.classList.remove('bg-white', 'text-black');
             } else {
                 document.getElementById('penalty-ui').classList.add('hidden');
                 document.getElementById('normal-ui').classList.remove('hidden');
                 setText('post-modal-title', "New Content");
                 setText('btn-submit-post', "Publish");
                 const sBtn = document.getElementById('btn-submit-post');
-                if(sBtn) {
-                    sBtn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-500');
-                    sBtn.classList.add('bg-white', 'text-black');
-                }
-                
-                // Default vibe
-                if(state.agency === 'viral') selectVibe('wild');
-                else selectVibe(state.selectedVibe); 
+                sBtn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-500');
+                sBtn.classList.add('bg-white', 'text-black');
+                selectVibe(state.selectedVibe);
             }
         }
-
         function closePostModal() { document.getElementById('post-modal').classList.add('hidden'); }
-
+        
         function submitPost() {
             const caption = document.getElementById('post-caption').value;
-            if(state.tempMediaUrls.length === 0) return alert("At least one media item required.");
+            const isCollab = document.getElementById('post-collab').checked;
+
+            if(state.tempMedia.length === 0) return alert("At least one media item required.");
+            
+            // PARASOCIAL CHECK
+            if (state.parasocial.active && isCollab) {
+                state.parasocial.active = false;
+                state.reputation = Math.max(0, state.reputation - 40);
+                log("💔 PARTNER DUMPED YOU! Collab detected. Leaked private photos. -40 Rep.", "text-red-600 font-bold");
+                closePostModal();
+                updateUI();
+                return; // Stop post? Or allow it with damage? Let's stop it to force player to realize mistake.
+            }
 
             let cost = 15;
-            let potentialLikes = 20; 
+            let potentialLikes = 20;
             let vibe = state.selectedVibe;
             let isPenalty = false;
             let repChange = 0;
@@ -1018,61 +1477,83 @@
             if(state.penaltyActive) {
                 isPenalty = true;
                 cost = 20;
-                potentialLikes = 150; 
+                potentialLikes = 150;
                 vibe = "Penalty";
                 state.penaltyActive = false;
-                repChange = -10; 
+                repChange = -10;
                 sanityChange = -15;
-                
-                const btn = document.getElementById('btn-create-post');
-                if(btn) {
-                    btn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-500');
-                    btn.classList.add('bg-white', 'text-black');
-                    btn.innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5"></i> Create Post`;
-                    lucide.createIcons();
-                }
                 log("Penalty fulfilled. Account unlocked.", "text-zinc-400");
             } else {
-                if(vibe === 'modest') { 
-                    cost = 15; potentialLikes = 15; 
+                if(vibe === 'modest') {
+                    cost = 15; potentialLikes = 15;
                     repChange = 5; sanityChange = -2;
                 }
-                if(vibe === 'tease') { 
-                    cost = 30; potentialLikes = 80; 
+                if(vibe === 'tease') {
+                    cost = 30; potentialLikes = 80;
                     repChange = -2; sanityChange = -8;
                 }
-                if(vibe === 'wild') { 
-                    cost = 60; potentialLikes = 300; 
+                if(vibe === 'wild') {
+                    cost = 60; potentialLikes = 300;
                     repChange = -15; sanityChange = -25;
                 }
             }
 
             if(state.energy < cost) return alert("Not enough energy.");
-
             state.energy -= cost;
             state.reputation = Math.max(0, Math.min(100, state.reputation + repChange));
             state.sanity = Math.max(0, state.sanity + sanityChange);
             state.postedToday = true;
             closePostModal();
 
-            // Diminishing returns for spamming wild
-            let fatigueMultiplier = 1.0;
-            if(state.lastVibe === 'wild' && vibe === 'wild') {
-                fatigueMultiplier = 0.5;
-                log("Viewer Fatigue: Earnings halved from spamming Wild.", "text-orange-400");
+            // DAMAGE EQUIPMENT
+            if(state.upgrades.camera) state.equipmentHealth.camera = Math.max(0, state.equipmentHealth.camera - 10);
+            if(state.upgrades.ringlight) state.equipmentHealth.ringlight = Math.max(0, state.equipmentHealth.ringlight - 10);
+            if(state.upgrades.studio) state.equipmentHealth.studio = Math.max(0, state.equipmentHealth.studio - 5);
+
+            // LEAK CHECK
+            if(!isPenalty && vibe !== 'modest' && !state.upgrades.security) {
+                // 10% chance to leak
+                if(Math.random() < 0.10) {
+                    state.leakPenaltyActive = 3;
+                    state.reputation = Math.min(100, state.reputation + 20);
+                    state.agencySatisfaction -= 30;
+                    log("🚨 CONTENT LEAKED! +Rep, but 0 Growth for 3 days.", "text-red-500 font-bold");
+                }
+            }
+
+            // FATIGUE & STREAK
+            // Fatigue applies immediately to earnings
+            let fatigueMultiplier = 1.0 - (state.fatigue * 0.10); // 10% penalty per level
+            if(state.fatigue > 0) log(`Dead Eyes: Earnings -${state.fatigue * 10}%`, "text-red-400");
+
+            let fatigueSpamMult = 1.0;
+            if (state.lastVibe === vibe && !isPenalty) {
+                fatigueSpamMult = 0.5;
+                log(`Viewer Fatigue: Earnings halved from spamming ${vibe.toUpperCase()}. Mix it up!`, "text-orange-400");
             }
             state.lastVibe = vibe;
 
+            // TREND MATCH CHECK
+            const trendMatch = caption.toLowerCase().includes(state.dailyTrend.toLowerCase());
+            let trendMult = 1.0;
+            
+            if (trendMatch) {
+                trendMult = 2.0; 
+                log("🔥 Trend Matched! 2x Reach Boost.", "text-pink-400 font-bold");
+            }
+
             const tierMult = 1 + (state.rankIdx * 0.5);
-            // Agency Boost (Viral House)
-            const agencyBoost = (state.agency === 'viral') ? 2.0 : 1.0;
-            const upgradeBoost = (state.upgrades.mirrorless) ? 1.15 : 1.0;
-
-            const finalMaxLikes = Math.floor(potentialLikes * tierMult * fatigueMultiplier * agencyBoost * upgradeBoost * (0.8 + Math.random() * 0.4));
-
+            let agencyBoost = (state.agency === 'viral') ? 2.0 : 1.0;
+            
+            // Check for broken equipment
+            const camBoost = (state.upgrades.camera && state.equipmentHealth.camera > 0) ? 1.15 : 1.0;
+            if(state.upgrades.camera && state.equipmentHealth.camera <= 0) log("Camera is broken! No bonus.", "text-red-400");
+            
+            const finalMaxLikes = Math.floor(potentialLikes * tierMult * fatigueSpamMult * agencyBoost * camBoost * trendMult * fatigueMultiplier * (0.8 + Math.random() * 0.4));
+            
             state.currentEarnings = 0;
             state.activePost = {
-                mediaUrls: [...state.tempMediaUrls], // Copy array
+                media: [...state.tempMedia],
                 caption: caption,
                 vibe: vibe,
                 likes: 0,
@@ -1084,12 +1565,7 @@
             if(!isPenalty) {
                 state.currentEarnings += AGE_DATA[player.ageRange].postBonus;
             }
-
-            // Check Immediate Game Over conditions
-            if(state.reputation <= 0) {
-                setTimeout(() => triggerGameOver("CANCELLED", "Reputation Hit Zero"), 1000);
-            }
-
+            
             renderFeedStart();
         }
 
@@ -1099,29 +1575,26 @@
             document.getElementById('feed-active').classList.remove('hidden');
             document.getElementById('feed-active').classList.add('flex');
             
-            // Render Carousel
             const container = document.getElementById('feed-media-container');
             container.innerHTML = "";
-            state.activePost.mediaUrls.forEach(url => {
-                const item = document.createElement('div');
-                item.className = "carousel-item w-full h-full flex-shrink-0";
-                item.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
-                container.appendChild(item);
+            state.activePost.media.forEach(item => {
+                const el = document.createElement('div');
+                el.className = "carousel-item w-full h-full flex-shrink-0";
+                
+                if (item.type === 'video') {
+                    el.innerHTML = `<video src="${item.url}" class="w-full h-full object-cover" autoplay loop muted playsinline></video>`;
+                } else {
+                    el.innerHTML = `<img src="${item.url}" class="w-full h-full object-cover">`;
+                }
+                container.appendChild(el);
             });
-            
-            // Badge Overlay
-            const badge = document.createElement('div');
-            badge.className = "absolute bottom-3 right-3 bg-black/60 backdrop-blur px-2 py-1 rounded text-[10px] text-white font-bold uppercase border border-white/20";
-            badge.innerText = state.activePost.vibe.toUpperCase();
-            container.appendChild(badge);
             
             setText('post-caption-display', state.activePost.caption || "...");
             setText('virality-badge', state.activePost.vibe.toUpperCase());
             setText('live-earnings', state.currentEarnings.toFixed(2));
             document.getElementById('comments-container').innerHTML = "";
-
             document.getElementById('btn-reply').classList.remove('hidden');
-
+            
             clearInterval(liveInterval);
             liveInterval = setInterval(simulateLiveFeed, 100);
             log(`Published content.`, "text-zinc-400");
@@ -1130,25 +1603,25 @@
         function simulateLiveFeed() {
             if(!state.activePost) return;
             if(state.activePost.likes >= state.activePost.maxLikes) return;
-
             state.activePost.likes++;
             setText('live-likes', state.activePost.likes);
-
+            
             if(!state.activePost.isPenalty) {
                 const ageData = AGE_DATA[player.ageRange];
                 const rankBonus = RANKS[state.rankIdx].bonus;
                 let perLike = BASE_LIKE_RATE + rankBonus + ageData.likeBonus;
                 
-                // Upgrades
-                if(state.upgrades.camera) perLike += 2;
-                if(state.upgrades.ringlight && Math.random() > 0.9) perLike += 5; // Tip chance
-
+                if(state.upgrades.camera && state.equipmentHealth.camera > 0) perLike += 1;
+                
+                // Ring light logic
+                if(state.upgrades.ringlight && state.equipmentHealth.ringlight > 0 && Math.random() > 0.9) perLike += 5;
+                
                 state.currentEarnings += perLike;
                 state.money += perLike;
+                state.lifetimeEarnings += perLike;
             }
             
             setText('live-earnings', state.currentEarnings.toFixed(2));
-            
             if(Math.random() > 0.8) addComment();
         }
 
@@ -1172,13 +1645,39 @@
         }
 
         function replyToComments() {
-            if(state.energy < 10) return;
+            if(state.energy < 10) return log("Not enough energy to reply.", "text-red-400");
             state.energy -= 10;
-            state.activePost.maxLikes += 15;
+            state.repliedToday = true;
+
+            const roll = Math.random();
+            let likeChange = 0;
+            let logMsg = "";
+            let logColor = "text-zinc-400";
+
+            if (roll < 0.60) {
+                likeChange = Math.floor(Math.random() * 21) + 20; 
+                logMsg = `Reply went viral! +${likeChange} likes`;
+                logColor = "text-green-400 font-bold";
+            } else if (roll < 0.90) {
+                likeChange = 0;
+                logMsg = "Reply ignored.";
+                logColor = "text-zinc-500";
+            } else {
+                likeChange = - (Math.floor(Math.random() * 21) + 10);
+                state.reputation = Math.max(0, state.reputation - 3);
+                state.sanity = Math.max(0, state.sanity - 5);
+                logMsg = `Drama in comments! -3 Rep`;
+                logColor = "text-red-500 font-bold";
+            }
+
+            state.activePost.maxLikes = Math.max(1, state.activePost.maxLikes + likeChange);
+
             const div = document.createElement('div');
             div.className = "pop-in flex gap-2 pl-4 border-l-2 border-blue-500 mb-2";
             div.innerHTML = `<div><span class="font-bold text-blue-400 text-xs">You</span><span class="text-white text-xs">Thanks luv! x</span></div>`;
             document.getElementById('comments-container').prepend(div);
+
+            log(logMsg, logColor);
             updateUI();
         }
 
@@ -1209,11 +1708,17 @@
                 const el = document.createElement('div');
                 el.className = "bg-zinc-900 rounded p-2 flex gap-3 border border-zinc-800";
                 
-                // Show first image thumbnail
-                const thumb = post.mediaUrls[0] || "";
-                
+                let thumb;
+                if (post.media.length > 0 && post.media[0].type === 'video') {
+                    // Create a video thumbnail
+                    thumb = `<video src="${post.media[0].url}" class="w-16 h-16 object-cover rounded bg-black" muted></video>`;
+                } else {
+                    const src = (post.media.length > 0) ? post.media[0].url : "";
+                    thumb = `<img src="${src}" class="w-16 h-16 object-cover rounded bg-black">`;
+                }
+
                 el.innerHTML = `
-                    <img src="${thumb}" class="w-16 h-16 object-cover rounded bg-black">
+                    ${thumb}
                     <div class="flex-1">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[10px] text-zinc-500">${post.timestamp}</span>
@@ -1227,98 +1732,223 @@
             });
         }
 
-        function endDay() {
+        function takeDayOff() {
+            if(state.burnoutDaysLeft > 0) return alert("You are burned out already.");
+            
+            state.energy = 100;
+            state.sanity = Math.min(100, state.sanity + 20);
+            state.streak = 0; // Reset streak
+            state.fatigue = 0; // Reset fatigue
+            log("Day Off taken. Sanity restored. Streak reset.", "text-cyan-400");
+            
+            endDay(true); // true = skip post processing
+        }
+
+        function endDay(skippedPost = false) {
             clearInterval(liveInterval);
             document.getElementById('btn-reply').classList.add('hidden');
+            
+            // BURNOUT CHECK
+            if (state.burnoutDaysLeft > 0) {
+                state.burnoutDaysLeft--;
+                log(`Burnout Recovery: ${state.burnoutDaysLeft} days left.`, "text-red-400");
+                if(state.burnoutDaysLeft === 0) {
+                    state.sanity = 50; // Reset to half
+                    log("You have recovered from burnout.", "text-green-500");
+                }
+            } else if (state.sanity <= 20) {
+                state.burnoutDaysLeft = 2; // Trigger burnout
+                log("🤯 MENTAL BREAKDOWN! You entered Burnout.", "text-red-600 font-bold");
+            }
+
+            // FATIGUE & STREAK LOGIC
+            if (!skippedPost) {
+                if (state.postedToday) {
+                    state.streak++;
+                    if(state.streak > 3) {
+                        state.fatigue++;
+                        log("⚠️ Overworked. Fatigue increased.", "text-red-400");
+                    }
+                } else {
+                    // Didn't post, didn't officially take day off
+                    state.streak = 0;
+                    state.fatigue = 0; // Natural rest?
+                }
+            }
+
+            // PARASOCIAL MAINTENANCE
+            if (state.parasocial.active) {
+                if (state.parasocial.maintained) {
+                    state.parasocial.maintained = false;
+                    state.money += 200;
+                    state.lifetimeEarnings += 200;
+                    log("Partner paid bills. +$200", "text-pink-400");
+                } else {
+                    state.parasocial.active = false;
+                    state.reputation = Math.max(0, state.reputation - 20);
+                    state.subscribers = Math.floor(state.subscribers * 0.9);
+                    log("💔 Partner left (Ignored). Leaked DMs. -20 Rep.", "text-red-600 font-bold");
+                }
+            } else {
+                // Random chance to get offer
+                if (state.subscribers > 100 && Math.random() < 0.15) {
+                    triggerParasocialOffer();
+                }
+            }
+
+            // BLACKMAIL CHANCE
+            if (Math.random() < 0.05 && state.money > 200) {
+                triggerBlackmail();
+            }
 
             let grossToday = 0;
             let subsGained = 0;
-
+            
             if(state.activePost) {
                 grossToday = state.currentEarnings;
                 state.activePost.earned = grossToday;
                 state.pastPosts.push(state.activePost);
                 
-                subsGained = Math.floor(state.activePost.likes / 3);
+                // LEAK PENALTY
+                if(state.leakPenaltyActive > 0) {
+                    subsGained = 0;
+                    state.leakPenaltyActive--;
+                    log(`Leak Penalty: 0 subs gained. (${state.leakPenaltyActive} days left)`, "text-red-400");
+                } else {
+                    subsGained = Math.floor(state.activePost.likes / 3);
+                }
+                
                 state.activePost = null;
             }
-
+            
             state.subscribers += subsGained;
             log(`Day End. Gross: $${grossToday.toFixed(2)}`, "text-zinc-300");
 
-            // --- TAX CALCULATION ---
+            // --- REFERRAL INCOME ---
+            let refMoney = 0;
+            for(let i=0; i<state.referralCount; i++) {
+                if(Math.random() < 0.05) { // 5% chance per friend
+                    const amount = [20, 40, 80][Math.floor(Math.random() * 3)];
+                    refMoney += amount;
+                }
+            }
+            if(refMoney > 0) {
+                state.money += refMoney;
+                state.lifetimeEarnings += refMoney;
+                log(`Referral Income: +$${refMoney}`, "text-green-400");
+            }
+
+            // --- TAX & AGENCY ---
             let taxRate = RANKS[state.rankIdx].tax;
-            
-            // Agency Logic
             let agencyRetainer = 0;
+            
             if(state.agency) {
                 const ag = AGENCIES[state.agency];
-                taxRate = ag.tax; // Override standard tax
-                agencyRetainer = ag.retainer;
                 
-                // Specific Agency Benefits
-                if(state.agency === 'chatter') {
-                    state.sanity = Math.min(100, state.sanity + 10);
+                // Viral House Escalation
+                if(state.agency === 'viral') {
+                    ag.currentTax += 0.01;
+                    log(`Viral House increased tax to ${(ag.currentTax*100).toFixed(0)}%`, "text-pink-500");
                 }
                 
-                log(`Agency Tax (${(taxRate*100).toFixed(0)}%): -$${(grossToday*taxRate).toFixed(2)}`, "text-purple-400");
+                taxRate = ag.currentTax;
+                agencyRetainer = ag.retainer;
+                
+                // Forced Collab
+                if(Math.random() < 0.10) { // 10% chance
+                    if(state.money >= 200) {
+                        state.money -= 200;
+                        log("Agency Forced Networking Event: -$200", "text-red-500 font-bold");
+                    } else {
+                        state.agencySatisfaction -= 30;
+                        log("Missed Networking Event (Too Poor). Agency Angry.", "text-red-500");
+                    }
+                }
+                
+                // Agency Check
+                const passedCheck = ag.check(state);
+                if(passedCheck) {
+                    state.agencySatisfaction = Math.min(100, state.agencySatisfaction + 5);
+                } else {
+                    state.agencySatisfaction -= 20;
+                    log(`Agency unhappy: ${ag.failMsg} -20 Satisfaction.`, "text-red-500");
+                }
+
+                if(state.agencySatisfaction <= 0) {
+                    log(`FIRED BY AGENCY! Severance penalty applied.`, "text-red-600 font-bold");
+                    state.money -= 250;
+                    state.agency = null;
+                }
             } else {
                 log(`Platform Tax (${(taxRate*100).toFixed(0)}%): -$${(grossToday*taxRate).toFixed(2)}`, "text-red-400");
             }
-
+            
             const taxAmount = grossToday * taxRate;
             state.money -= taxAmount;
             state.costs.lastTax = taxAmount;
+            state.platformRevenue += taxAmount;
+            if(agencyRetainer > 0) state.money -= agencyRetainer;
 
-            if(agencyRetainer > 0) {
-                state.money -= agencyRetainer;
-                log(`Agency Retainer: -$${agencyRetainer}`, "text-yellow-400");
+            // --- LOAN REPAYMENT ---
+            let dailyLoanCost = 0;
+            for (let i = state.loans.length - 1; i >= 0; i--) {
+                const loan = state.loans[i];
+                state.money -= loan.dailyPay;
+                loan.totalOwed -= loan.dailyPay;
+                loan.daysLeft--;
+                dailyLoanCost += loan.dailyPay;
+                
+                if (loan.daysLeft <= 0) {
+                    log(`Loan ${loan.name} fully paid off!`, "text-green-400");
+                    state.loans.splice(i, 1);
+                }
             }
+            if(dailyLoanCost > 0) log(`Loan Payments: -$${dailyLoanCost.toFixed(2)}`, "text-red-400");
 
-            // --- INFLATION & EXPENSES ---
-            const inflationMultiplier = 1.05; // 5% Daily Increase
-            state.costs.rent *= inflationMultiplier; 
-            state.costs.living *= inflationMultiplier;
+            // --- INFLATION & DYNAMIC EXPENSES ---
+            const inflationMultiplier = 1.05;
+            state.costs.rent *= inflationMultiplier;
             
-            const expenses = state.costs.rent + state.costs.living;
-            state.money -= expenses;
+            // Dynamic Lifestyle Expenses
+            state.dynamicExpenses = [];
+            const expChance = Math.random();
+            if(expChance > 0.3) { // 70% chance of random expense
+                const item = EXPENSE_FLAVOR[Math.floor(Math.random() * EXPENSE_FLAVOR.length)];
+                const cost = Math.floor(Math.random() * 50) + 20;
+                state.dynamicExpenses.push({name: item, cost: cost});
+                state.money -= cost;
+            }
             
-            log(`Inflation +5%. Burn: -$${expenses.toFixed(2)}`, "text-orange-500 font-bold");
+            const dynTotal = state.dynamicExpenses.reduce((acc, curr) => acc + curr.cost, 0);
+            const expenses = state.costs.rent + dynTotal;
+            state.money -= state.costs.rent; 
+            
+            log(`Daily Burn: -$${expenses.toFixed(2)}`, "text-orange-500 font-bold");
+
+            // --- PASSIVE EFFECTS ---
+            if(state.upgrades.apartment) state.sanity = Math.min(100, state.sanity + 10);
+            if(state.agency === 'chatter') state.sanity = Math.min(100, state.sanity + 5);
 
             // Random Events
             if(!state.upgrades.security && Math.random() > 0.85) {
                 log("⚠️ CONTENT LEAK! Sanity dropped.", "text-red-500 font-bold");
                 state.sanity -= 30;
-                state.subscribers += 200; 
+                state.subscribers += 200;
             }
-            if(Math.random() > 0.90) { // Family found out
-                log("👀 FAMILY FOUND OUT! Reputation tanked.", "text-red-500 font-bold");
-                state.reputation -= 30;
-            }
-            if(Math.random() > 0.95) { // Phone Broke
-                log("📱 PHONE BROKE! Emergency repair -$200.", "text-red-500 font-bold");
-                state.money -= 200;
-            }
-            if(Math.random() > 0.95) { // Internet Out
-                log("🌐 INTERNET OUT! Data fees -$50.", "text-red-500 font-bold");
-                state.money -= 50;
-            }
-            if(Math.random() > 0.98) { // Blackout
-                log("⚡ BLACKOUT! Energy drained.", "text-yellow-500 font-bold");
-                state.energy = 0;
-            }
+            
+            // --- UPDATE TREND ---
+            updateTrend();
 
             state.day++;
-            if(state.energy < 100) state.energy = 100; // Restore energy on sleep unless blackout happened inside loop? No, sleep restores.
-            
+            state.energy = 100;
             state.postedToday = false;
+            state.repliedToday = false;
+            
             updateRank();
-
-            if(state.money < -1000) { 
-                triggerGameOver("BANKRUPT", "Debt Exceeded -$1000");
-            } else if (state.reputation <= 0) {
-                triggerGameOver("CANCELLED", "Reputation Hit Zero");
-            } else {
+            
+            if(state.money < -1000) triggerGameOver("BANKRUPT", "Debt Exceeded -$1000");
+            else if (state.reputation <= 0) triggerGameOver("CANCELLED", "Reputation Hit Zero");
+            else {
                 document.getElementById('feed-active').classList.add('hidden');
                 document.getElementById('feed-archive').classList.add('hidden');
                 document.getElementById('feed-empty').classList.remove('hidden');
@@ -1337,11 +1967,10 @@
 
         function updateRank() {
             let idx = 0;
-            // Check Studio requirement for Queen
-            RANKS.forEach((r, i) => { 
+            RANKS.forEach((r, i) => {
                 if(state.subscribers >= r.threshold) {
                     if (r.name === "QUEEN" && !state.upgrades.studio) return;
-                    idx = i; 
+                    idx = i;
                 }
             });
             if(idx > state.rankIdx) {
@@ -1351,68 +1980,83 @@
         }
 
         function updateUI() {
-            // Safe Updates
+            // BURNOUT UI
+            if (state.burnoutDaysLeft > 0) {
+                document.getElementById('burnout-screen').classList.remove('hidden');
+                setText('burnout-timer', state.burnoutDaysLeft);
+            } else {
+                document.getElementById('burnout-screen').classList.add('hidden');
+            }
+
+            // FATIGUE UI
+            if (state.fatigue > 0) {
+                document.getElementById('fatigue-status').classList.remove('hidden');
+            } else {
+                document.getElementById('fatigue-status').classList.add('hidden');
+            }
+
+            // PARASOCIAL UI
+            if (state.parasocial.active) {
+                document.getElementById('parasocial-action-container').classList.remove('hidden');
+            } else {
+                document.getElementById('parasocial-action-container').classList.add('hidden');
+            }
+
+            // TREND UI
+            setText('post-trend-display', state.dailyTrend);
+
             setText('money-display', state.money.toFixed(2));
-            const moneyWrapper = document.getElementById('money-display');
-            if(moneyWrapper) moneyWrapper.className = state.money < 0 ? "text-red-500" : "text-green-500";
+            document.getElementById('money-display').className = state.money < 0 ? "text-red-500" : "text-green-500";
             
             setText('phone-balance', `$${state.money.toFixed(0)}`);
-            const pBal = document.getElementById('phone-balance');
-            if(pBal) pBal.className = state.money < 0 ? "font-mono text-sm font-bold text-red-500" : "font-mono text-sm font-bold text-green-500";
-
-            setText('energy-val', `${state.energy}%`);
-            const eBar = document.getElementById('energy-bar');
-            if(eBar) eBar.style.width = `${state.energy}%`;
-
-            // New Bars
-            const repBar = document.getElementById('rep-bar');
-            if(repBar) repBar.style.width = `${state.reputation}%`;
+            document.getElementById('phone-balance').className = state.money < 0 ? "font-mono text-sm font-bold text-red-500" : "font-mono text-sm font-bold text-green-500";
             
-            const sanBar = document.getElementById('sanity-bar');
-            if(sanBar) sanBar.style.width = `${state.sanity}%`;
+            document.getElementById('rep-bar').style.width = `${state.reputation}%`;
+            document.getElementById('sanity-bar').style.width = `${state.sanity}%`;
+            document.getElementById('energy-bar').style.width = `${state.energy}%`;
             
             setText('subs-display', state.subscribers.toLocaleString());
             
+            // STATS HOVER
+            setText('stat-gross', `$${state.lifetimeEarnings.toFixed(2)}`);
+            setText('stat-tax', `$${state.platformRevenue.toFixed(2)}`);
+
             const r = RANKS[state.rankIdx];
             setText('tier-name', r.name);
-            const tierEl = document.getElementById('tier-name');
-            if(tierEl) tierEl.className = `text-4xl font-black tracking-tight ${r.color}`;
+            document.getElementById('tier-name').className = `text-4xl font-black tracking-tight ${r.color}`;
             
             let taxDisplay = r.tax;
-            if(state.agency) taxDisplay = AGENCIES[state.agency].tax;
-
+            if(state.agency) taxDisplay = AGENCIES[state.agency].currentTax;
             setText('current-tax-rate', `${(taxDisplay * 100).toFixed(0)}%`);
-            setText('rate-info-rank', `Rank Bonus: +$${r.bonus}`);
             
-            const ageBonus = AGE_DATA[player.ageRange]?.likeBonus || 0;
-            const totalRate = BASE_LIKE_RATE + r.bonus + ageBonus + (state.upgrades.camera ? 2 : 0);
-            setText('phone-rate', `$${totalRate}/like`);
-
-            // Costs
             setText('cost-rent', `-$${state.costs.rent.toFixed(2)}`);
-            setText('cost-living', `-$${state.costs.living.toFixed(2)}`);
             
+            // Dynamic Expenses List
+            const dynContainer = document.getElementById('dynamic-expenses-container');
+            dynContainer.innerHTML = "";
+            state.dynamicExpenses.forEach(exp => {
+                dynContainer.innerHTML += `
+                <div class="flex justify-between items-center text-zinc-400">
+                    <span>${exp.name}</span>
+                    <span class="text-white font-mono">-$${exp.cost.toFixed(2)}</span>
+                </div>`;
+            });
+
+            // Loan Payments Display
+            let dailyLoan = 0;
+            state.loans.forEach(l => dailyLoan += l.dailyPay);
+            if(dailyLoan > 0) {
+                document.getElementById('loan-payment-container').classList.remove('hidden');
+                setText('cost-loan', `-$${dailyLoan.toFixed(2)}`);
+            } else {
+                document.getElementById('loan-payment-container').classList.add('hidden');
+            }
+
             if(state.costs.lastTax > 0) {
                 document.getElementById('tax-container').classList.remove('hidden');
                 setText('cost-tax', `-$${state.costs.lastTax.toFixed(2)}`);
             } else {
                 document.getElementById('tax-container').classList.add('hidden');
-            }
-
-            const extraContainer = document.getElementById('extra-costs-container');
-            if(extraContainer) {
-                extraContainer.innerHTML = "";
-                let extraTotal = 0;
-                state.costs.extra.forEach(e => {
-                    extraTotal += e.price;
-                    extraContainer.innerHTML += `<div class="flex justify-between items-center text-zinc-500 text-xs"><span class="text-orange-400">${e.name}</span><span class="text-white font-mono">-$${e.price.toFixed(2)}</span></div>`;
-                });
-                
-                let agencyFee = 0;
-                if(state.agency) agencyFee = AGENCIES[state.agency].retainer;
-
-                const total = state.costs.rent + state.costs.living + state.costs.lastTax + extraTotal + agencyFee;
-                setText('total-daily-cost', `-$${total.toFixed(2)}`);
             }
 
             const btn = document.getElementById('btn-create-post');
@@ -1430,24 +2074,15 @@
                 }
             }
             
-            // Agency Button Text
             const agBtn = document.getElementById('btn-agency');
             if(agBtn) {
                 if(state.agency) {
-                    agBtn.innerHTML = `<i data-lucide="check-circle" class="text-green-500 w-5 h-5"></i><span class="text-green-400 text-xs font-bold">Signed</span>`;
+                    agBtn.innerHTML = `<i data-lucide="check-circle" class="text-green-500 w-4 h-4"></i><span class="text-green-400 text-[10px] font-bold">Signed</span>`;
                 } else {
-                    agBtn.innerHTML = `<i data-lucide="briefcase" class="text-purple-500 w-5 h-5"></i><span class="text-zinc-300 text-xs font-bold">Agency</span>`;
+                    agBtn.innerHTML = `<i data-lucide="briefcase" class="text-purple-500 w-4 h-4"></i><span class="text-zinc-300 text-[10px] font-bold">Agency</span>`;
                 }
             }
             lucide.createIcons();
-        }
-
-        function log(msg, cls="text-zinc-400") {
-            const div = document.createElement('div');
-            div.className = `mb-1 ${cls}`;
-            div.innerText = `> ${msg}`;
-            const logEl = document.getElementById('game-log');
-            if(logEl) logEl.prepend(div);
         }
     </script>
 </body>
